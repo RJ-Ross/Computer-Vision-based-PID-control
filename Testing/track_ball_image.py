@@ -14,46 +14,83 @@ import time
 # define the lower and upper boundaries of the "green"
 # ball in the HSV color space, then initialize the
 # list of tracked points
-ballLower = (7, 88, 164)
+# ballLower = (7, 88, 164)
+ballLower = (7, 84, 172)
 ballUpper = (179, 255, 255)
 pts = deque(maxlen=5)
 
+def morph_operations(frame):
+    cv2.namedWindow("OG", cv2.WINDOW_AUTOSIZE)
+    cv2.imshow('OG', frame)
+
+    # blur frame, and convert it to the HSV color space
+    blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+    cv2.namedWindow("blurred", cv2.WINDOW_AUTOSIZE)
+    cv2.imshow('blurred', blurred)
+    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+
+    mask = cv2.inRange(hsv, ballLower, ballUpper)
+    mask = cv2.erode(mask, None, iterations=2)
+    mask = cv2.dilate(mask, None, iterations=2)
+    cv2.namedWindow("mask", cv2.WINDOW_AUTOSIZE)
+    cv2.imshow('mask', mask)
+
+    result = cv2.bitwise_and(frame, frame, mask=mask)
+    cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
+    cv2.imshow('result', result)
+
+    # find contours in the mask and initialize the current
+    # (x, y) center of the ball
+    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+                            cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    center = None
+    # only proceed if at least one contour was found
+    if len(cnts) > 0:
+        # find the largest contour in the mask, then use
+        # it to compute the minimum enclosing circle and
+        # centroid
+        c = max(cnts, key=cv2.contourArea)
+        ((x, y), radius) = cv2.minEnclosingCircle(c)
+        M = cv2.moments(c)
+        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        # only proceed if the radius meets a minimum size
+        if radius > 10:
+            # draw the circle and centroid on the frame,
+            # then update the list of tracked points
+            cv2.circle(frame, (int(x), int(y)), int(radius),
+                       (0, 255, 255), 2)
+            cv2.circle(frame, center, 5, (0, 0, 255), -1)
+    # update the points queue
+    pts.appendleft(center)
+
+    # loop over the set of tracked points
+    for i in range(1, len(pts)):
+        # if either of the tracked points are None, ignore
+        # them
+        if pts[i - 1] is None or pts[i] is None:
+            continue
+        # otherwise, compute the thickness of the line and
+        # draw the connecting lines
+        thickness = int(np.sqrt(5 / float(i + 1)) * 2.5)
+        cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+
+    return frame
+
 
 def main():
-    # cap = open_video()
     frame = cv2.imread('C:/Users/Ryan/Documents/SharedUbuntu16.4LTS/BallPID/test_files/ball2_resized.png')
     while(True):
-            cv2.namedWindow("OG", cv2.WINDOW_AUTOSIZE)
-            cv2.imshow('OG', frame)
+        start_func = time.clock()
+        ball_frame = morph_operations(frame)
+        end_func = time.clock()
+        print("Func time: {:.4f} ms".format(float(1000*(end_func- start_func))))
+        start_func = time.clock()
 
-            # blur frame, and convert it to the HSV color space
-            blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-            cv2.namedWindow("blurred", cv2.WINDOW_AUTOSIZE)
-            cv2.imshow('blurred', blurred)
-            hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-
-            mask = cv2.inRange(hsv, ballLower, ballUpper)
-            mask = cv2.erode(mask, None, iterations=2)
-            mask = cv2.dilate(mask, None, iterations=2)
-            cv2.namedWindow("mask", cv2.WINDOW_AUTOSIZE)
-            cv2.imshow('mask', mask)
-
-            result = cv2.bitwise_and(frame, frame, mask=mask)
-            cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
-            cv2.imshow('result', result)
-
-
-
-
-
-
-
-
-            if (cv2.waitKey(33) & 0xFF) == ord('q'): # Hit `q` to exit
-                print("break here")
-                # Release everything if job is finished
-                cv2.destroyAllWindows()
-                break
+        if (cv2.waitKey(33) & 0xFF) == ord('q'): # Hit `q` to exit
+            # Release everything if job is finished
+            cv2.destroyAllWindows()
+            break
 
 if __name__ == '__main__':
     main()
