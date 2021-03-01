@@ -40,6 +40,8 @@ while True:
 
     result = cv2.bitwise_and(frame, frame, mask=mask)
 
+    # final = cv2.hconcat([frame, mask, result])
+    # cv2.imshow("concat", final)
     cv2.imshow("frame", frame)
     cv2.imshow("mask", mask)
     cv2.imshow("result", result)

@@ -12,7 +12,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video",
 	help="path to the (optional) video file")
 ap.add_argument("-b", "--buffer", type=int, default=64,
-	help="max buffer size") #he maximum size of our deque , which maintains a list of the previous (x, y)-coordinates of the ball we are tracking. This deque  allows us to draw the “contrail” of the ball, detailing its past locations.
+	help="max buffer size") #the maximum size of our deque , which maintains a list of the previous (x, y)-coordinates of the ball we are tracking. This deque  allows us to draw the “contrail” of the ball, detailing its past locations.
 args = vars(ap.parse_args())
 
 # define the lower and upper boundaries of the "green"
